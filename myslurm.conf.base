@@ -1,0 +1,66 @@
+# Copyright (C) 2022  Jimmy Aguilar Mena
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+ClusterName=MalleableSlurm
+FirstJobId=1
+
+SlurmUser=bsc28860
+SlurmdUser=bsc28860
+
+MailProg=/bin/true
+
+AuthType=auth/none
+CryptoType=crypto/openssl
+
+JobCredentialPrivateKey=@MYSLURM_CONF_DIR@/slurm.key
+JobCredentialPublicCertificate=@MYSLURM_CONF_DIR@/slurm.cert
+
+SlurmctldDebug=info
+SlurmctldLogFile=@MYSLURM_VAR_DIR@/slurmctld.log
+
+SlurmdDebug=info
+SlurmdLogFile=@MYSLURM_VAR_DIR@/slurmd.log
+
+SlurmSchedLogLevel=1
+SlurmSchedLogFile=@MYSLURM_VAR_DIR@/slurm_scheduler.log
+
+SchedulerType=sched/backfill
+SchedulerParameters=bf_interval=10,bf_resolution=20
+PriorityType=priority/multifactor
+
+AccountingStorageType=accounting_storage/filetxt
+JobCompType=jobcomp/filetxt
+
+MessageTimeout=30
+
+StateSaveLocation=@MYSLURM_VAR_DIR@/slurmctld
+SlurmdSpoolDir=@MYSLURM_VAR_DIR@/slurmd
+
+SlurmctldPidFile=@MYSLURM_VAR_DIR@/slurmctld.pid
+SlurmctldPort=7023
+SlurmctldTimeout=300
+
+SlurmdPidFile=@MYSLURM_VAR_DIR@/slurmd.pid
+SlurmdPort=7024
+SlurmdTimeout=300
+
+#AccountingStorageLoc=@MYSLURM_VAR_DIR@/accounting
+JobCompLoc=@MYSLURM_VAR_DIR@/job_completions
+
+ReturnToService=1
+Waittime=0
+
+JobAcctGatherType=jobacct_gather/none
+
