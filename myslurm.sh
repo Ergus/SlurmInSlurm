@@ -8,15 +8,14 @@ set -e
 # You may change this one to yours
 MYSLURM_ROOT=${HOME}/install_mn/slurm
 
-MYSLURM_BIN_DIR=${MYSLURM_ROOT}/bin
-MYSLURM_SBIN_DIR=${MYSLURM_ROOT}/sbin
+export MYSLURM_BIN_DIR=${MYSLURM_ROOT}/bin
+export MYSLURM_SBIN_DIR=${MYSLURM_ROOT}/sbin
 
-MYSLURM_CONF_DIR=${MYSLURM_ROOT}/slurm-confdir
-MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
-
-MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
-
+export MYSLURM_CONF_DIR=${MYSLURM_ROOT}/slurm-confdir
 export MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
+
+export MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
+
 
 # Cleanup and var regeneration
 rm -rf ${MYSLURM_VAR_DIR}/slurm*
@@ -32,11 +31,11 @@ echo "" > ${MYSLURM_VAR_DIR}/slurmctld/resv_state   # clear the file.
 [ -f ${MYSLURM_CONF_DIR}/slurm.key ] || cp myslurm.key ${MYSLURM_CONF_DIR}/slurm.key
 
 # Get system info: nodes (local and remote), cores, sockets, cpus, memory
-MYSLURM_NODELIST=$(scontrol show hostname | paste -d" " -s)
+NODELIST=$(scontrol show hostname | paste -d" " -s)
 
-MYSLURM_MASTER=$(hostname)                    # Master node
+MASTER=$(hostname)                    # Master node
 
-REMOTE_NODES_LIST=(${MYSLURM_NODELIST/"${MYSLURM_MASTER}"})  # List of remote nodes (removing master)
+REMOTE_NODES_LIST=(${NODELIST/"${MASTER}"})  # List of remote nodes (removing master)
 REMOTE_NODES_STR=${REMOTE_NODES_LIST[*]}          # "node1 node2 node3"
 REMOTE_NODES_STR=${REMOTE_NODES_STR// /,}         # "node1,node2,node3"
 REMOTE_NODES_COUNT=${#REMOTE_NODES_LIST[@]}
@@ -51,7 +50,7 @@ MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 	sed -e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
 		-e "s|@MYSLURM_CONF_DIR@|${MYSLURM_CONF_DIR}|g" myslurm.conf.base
 
-	echo "SlurmctldHost=${MYSLURM_MASTER}"
+	echo "SlurmctldHost=${MASTER}"
 
 	for node in ${REMOTE_NODES_LIST[@]}; do
 		mkdir ${MYSLURM_VAR_DIR}/slurmd.${node}
@@ -61,7 +60,7 @@ MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 } > ${MYSLURM_CONF_FILE}
 
 # Print hostname from remotes to stdout ==============================
-echo "# Master: ${MYSLURM_MASTER}"
+echo "# Master: ${MASTER}"
 mpiexec -n ${REMOTE_NODES_COUNT} --hosts=${REMOTE_NODES_STR} hostname | sed -e "s/^/# Remote: /"
 
 # Start the server and clients =======================================
