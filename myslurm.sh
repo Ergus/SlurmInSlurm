@@ -16,7 +16,7 @@ MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
 
 MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
 
-MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
+export MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
 
 # Cleanup and var regeneration
 rm -rf ${MYSLURM_VAR_DIR}/slurm*
@@ -32,11 +32,11 @@ echo "" > ${MYSLURM_VAR_DIR}/slurmctld/resv_state   # clear the file.
 [ -f ${MYSLURM_CONF_DIR}/slurm.key ] || cp myslurm.key ${MYSLURM_CONF_DIR}/slurm.key
 
 # Get system info: nodes (local and remote), cores, sockets, cpus, memory
-NODELIST=$(scontrol show hostname | paste -d" " -s)
+MYSLURM_NODELIST=$(scontrol show hostname | paste -d" " -s)
 
-MASTER_NODE=$(hostname)                    # Master node
+MYSLURM_MASTER=$(hostname)                    # Master node
 
-REMOTE_NODES_LIST=(${NODELIST/"${MASTER_NODE}"})  # List of remote nodes (removing master)
+REMOTE_NODES_LIST=(${MYSLURM_NODELIST/"${MYSLURM_MASTER}"})  # List of remote nodes (removing master)
 REMOTE_NODES_STR=${REMOTE_NODES_LIST[*]}          # "node1 node2 node3"
 REMOTE_NODES_STR=${REMOTE_NODES_STR// /,}         # "node1,node2,node3"
 REMOTE_NODES_COUNT=${#REMOTE_NODES_LIST[@]}
@@ -51,39 +51,53 @@ MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 	sed -e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
 		-e "s|@MYSLURM_CONF_DIR@|${MYSLURM_CONF_DIR}|g" myslurm.conf.base
 
-	echo "SlurmctldHost=${MASTER_NODE}"
+	echo "SlurmctldHost=${MYSLURM_MASTER}"
 
 	for node in ${REMOTE_NODES_LIST[@]}; do
+		mkdir ${MYSLURM_VAR_DIR}/slurmd.${node}
 		echo "NodeName=$node Sockets=${NSOCS} CoresPerSocket=${NCPS} ThreadsPerCore=1 State=Idle"
 	done
 	echo "PartitionName=malleability Nodes=${REMOTE_NODES_STR} Default=YES MaxTime=INFINITE State=UP"
 } > ${MYSLURM_CONF_FILE}
 
 # Print hostname from remotes to stdout ==============================
+echo "# Master: ${MYSLURM_MASTER}"
 mpiexec -n ${REMOTE_NODES_COUNT} --hosts=${REMOTE_NODES_STR} hostname | sed -e "s/^/# Remote: /"
 
 # Start the server and clients =======================================
-${MYSLURM_SBIN_DIR}/slurmctld -cDvif ${MYSLURM_CONF_FILE} &
+# -D: foreground
+# -d: background
+# -c: clear
+# -v: Verbose operation. Multiple -v's increase verbosity.
+# -i: Ignore errors found while reading in state files on startup.
+# -f: SLURM_CONF
+${MYSLURM_SBIN_DIR}/slurmctld -cdvif ${MYSLURM_CONF_FILE}
+# -D: Same ad before
+# -d: means something else (slurmstepd)
 mpiexec -n ${REMOTE_NODES_COUNT} --hosts=${REMOTE_NODES_STR} \
-		${MYSLURM_SBIN_DIR}/slurmd -cDvf ${MYSLURM_CONF_FILE} &
+		${MYSLURM_SBIN_DIR}/slurmd -cvf ${MYSLURM_CONF_FILE}
 
-SLURM_CONF=${MYSLURM_CONF_FILE}
-echo "SLURM_CONF=${SLURM_CONF}"
+echo "MYSLURM_CONF_FILE=${MYSLURM_CONF_FILE}"
 
-# echo "# From inside"
-${MYSLURM_BIN_DIR}/sinfo
-${MYSLURM_BIN_DIR}/sbatch -JMyTestJob -N2 sleep 10 &
-${MYSLURM_BIN_DIR}/squeue
-${MYSLURM_BIN_DIR}/sinfo
+myslurm () {
+	SLURM_CONF=${MYSLURM_CONF_FILE} ${MYSLURM_BIN_DIR}/$1
+}
 
-aux=$(${MYSLURM_BIN_DIR}/squeue | wc -l);
 
-while [ $aux -gt 1 ]; do
-        aux=$( $MYSLURM_BIN_DIR/squeue | wc -l );
-        echo "$aux jobs remaining...";
-        sleep 2;
-done
+# # echo "# From inside"
+# ${MYSLURM_BIN_DIR}/sinfo
+# ${MYSLURM_BIN_DIR}/sbatch -JMyTestJob -N2 sleep 10 &
+# ${MYSLURM_BIN_DIR}/squeue
+# ${MYSLURM_BIN_DIR}/sinfo
 
-echo "Finishing...";
-${MYSLURM_BIN_DIR}/sacct
+# aux=$(${MYSLURM_BIN_DIR}/squeue | wc -l);
+
+# while [ $aux -gt 1 ]; do
+#         aux=$( $MYSLURM_BIN_DIR/squeue | wc -l );
+#         echo "$aux jobs remaining...";
+#         sleep 2;
+# done
+
+# echo "Finishing...";
+# ${MYSLURM_BIN_DIR}/sacct
 

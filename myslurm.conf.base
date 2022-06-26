@@ -24,12 +24,6 @@ MailProg=/bin/true
 AuthType=auth/none
 CredType=cred/none
 
-SlurmctldDebug=info
-SlurmctldLogFile=@MYSLURM_VAR_DIR@/slurmctld.log
-
-SlurmdDebug=info
-SlurmdLogFile=@MYSLURM_VAR_DIR@/slurmd.log
-
 SlurmSchedLogLevel=1
 SlurmSchedLogFile=@MYSLURM_VAR_DIR@/slurm_scheduler.log
 
@@ -45,17 +39,21 @@ JobCompLoc=@MYSLURM_VAR_DIR@/job_completions
 
 MessageTimeout=30
 
-StateSaveLocation=@MYSLURM_VAR_DIR@/slurmctld
-SlurmdSpoolDir=@MYSLURM_VAR_DIR@/slurmd
-
+SlurmctldDebug=info
+SlurmctldLogFile=@MYSLURM_VAR_DIR@/slurmctld.log
 SlurmctldPidFile=@MYSLURM_VAR_DIR@/slurmctld.pid
 SlurmctldPort=7010
 SlurmctldTimeout=300
 
-SlurmdPidFile=@MYSLURM_VAR_DIR@/slurmd.pid
+SlurmdDebug=info
+StateSaveLocation=@MYSLURM_VAR_DIR@
+SlurmdLogFile=@MYSLURM_VAR_DIR@/slurmd.%n.log
+SlurmdSpoolDir=@MYSLURM_VAR_DIR@/slurmd.%n
+SlurmdPidFile=@MYSLURM_VAR_DIR@/slurmd.%n.pid
 SlurmdPort=7011
 SlurmdTimeout=300
 
+# Obsolete
 #AccountingStorageLoc=@MYSLURM_VAR_DIR@/accounting
 
 ReturnToService=1
