@@ -23,7 +23,6 @@ MailProg=/bin/true
 
 AuthType=auth/none
 CredType=cred/none
-TopologyPlugin=topology/tree
 
 SlurmSchedLogLevel=1
 SlurmSchedLogFile=@MYSLURM_VAR_DIR@/slurm_scheduler.log

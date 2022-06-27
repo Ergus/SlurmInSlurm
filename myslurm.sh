@@ -64,27 +64,6 @@ MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 	echo ""
 } > ${MYSLURM_CONF_FILE}
 
-{
-	declare -A myarray=()
-	for node in ${REMOTE_LIST[@]}; do
-		if [[ ${node} =~ (s[0-9]+r[0-9]+)b([0-9]+) ]]; then
-			id=${BASH_REMATCH[2]}
-			name=${BASH_REMATCH[1]}opasw$(( 1 + id / 24))
-			myarray[${name}]+="${id},"
-		else
-			echo "Error: Node ${node} didn't match" >&2
-		fi
-	done
-
-	for i in ${!myarray[@]}; do
-		suf=${myarray[$i]}
-		[[ ${i} =~ (s[0-9]+r[0-9]+)opasw[0-3] ]] &&
-			echo "SwitchName=${i} Nodes=${BASH_REMATCH[1]}b[${suf%?}]"
-	done
-	switches=${!myarray[*]}
-	echo "SwitchName=troncal Switches=${switches// /,}"
-} > ${MYSLURM_CONF_DIR}/topology.conf
-
 # Print hostname from remotes to stdout ==============================
 echo "# Master: ${MYSLURM_MASTER}"
 mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/# SLAVE: /"
