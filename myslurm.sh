@@ -83,7 +83,7 @@ mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/#
 # -D: Same as before
 # -d: means something else (slurmstepd)
 mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} \
-			./mywrapper.sh ${MYSLURM_SBIN_DIR}/slurmd -cDvf ${MYSLURM_CONF_FILE} &
+			./mywrapper.sh ${MYSLURM_SBIN_DIR}/slurmd -cvf ${MYSLURM_CONF_FILE}
 
 echo "MYSLURM_CONF_FILE=${MYSLURM_CONF_FILE}"
 
@@ -92,28 +92,10 @@ myslurm () {
 	SLURM_CONF=${MYSLURM_CONF_FILE} ${MYSLURM_BIN_DIR}/$@
 }
 
-myslurm_kill () {
-	filename=${MYSLURM_VAR_DIR}/slurmctld.pid
-	[[ -f ${filename} ]] && kill $(<${filename})
-
-	mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} ./mywrapper.sh mykill_remotes
-}
-
 export -f myslurm
 export -f myslurm_kill
 # # echo "# From inside"
 
 myslurm sinfo
 myslurm squeue
-
-# aux=$(${MYSLURM_BIN_DIR}/squeue | wc -l);
-
-# while [ $aux -gt 1 ]; do
-#         aux=$( $MYSLURM_BIN_DIR/squeue | wc -l );
-#         echo "$aux jobs remaining...";
-#         sleep 2;
-# done
-
-# echo "Finishing...";
-# ${MYSLURM_BIN_DIR}/sacct
 

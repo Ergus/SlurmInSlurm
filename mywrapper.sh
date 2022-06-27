@@ -13,20 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-if [[ $1 == mykill_remotes ]]; then
-	filename=${MYSLURM_VAR_DIR}/slurmd.$(hostname).pid
-	echo "process ${filename}"
-	if [[ -f ${filename} ]]; then
-		pid=$(<${filename})
-		kill ${pid}
-		echo "Killing ${pid} in $(hostname)"
-	else
-		echo "No process to kill in $(hostname)"
-	fi
-	exit
-fi
-
 echo "Executing: $@ | $(hostname)"
 $@
 echo "Done: $! -> $? | $(hostname)"
