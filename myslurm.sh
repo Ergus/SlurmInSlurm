@@ -90,7 +90,7 @@ mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/#
 
 
 mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} \
-			./mywrapper.sh ${MYSLURM_ROOT}/sbin/slurmd -cvf ${MYSLURM_CONF_FILE}
+		./mywrapper.sh ${MYSLURM_ROOT}/sbin/slurmd -cDvf ${MYSLURM_CONF_FILE} &
 
 # Use this command to call slurm commands example: myslurm squeue
 myslurm () {
