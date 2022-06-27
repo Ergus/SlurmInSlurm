@@ -16,6 +16,12 @@ export MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
 
 export MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
 
+[[ -d "${MYSLURM_VAR_DIR}" ]] || \
+	echo "Error: var directory ${MYSLURM_VAR_DIR} doesn't exist"
+
+[[ -d "${MYSLURM_CONF_DIR}" ]] || \
+	echo "Error: conf directory ${MYSLURM_CONF_DIR} doesn't exist"
+
 [[ "${MODULEPATH}" =~ "${MYSLURM_VAR_DIR}" ]] ||
 	export MODULEPATH=${MYSLURM_VAR_DIR}:${MODULEPATH}
 
