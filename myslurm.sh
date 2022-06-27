@@ -9,19 +9,19 @@ if [[ $0 == ${BASH_SOURCE[0]} ]]; then
 fi
 
 # You may change this one to yours
-MYSLURM_ROOT=${HOME}/install_mn/slurm
-
-export MYSLURM_BIN_DIR=${MYSLURM_ROOT}/bin
-export MYSLURM_SBIN_DIR=${MYSLURM_ROOT}/sbin
+export MYSLURM_ROOT=${HOME}/install_mn/slurm
 
 export MYSLURM_CONF_DIR=${MYSLURM_ROOT}/slurm-confdir
 export MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
 
 export MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
 
+[[ "${MODULEPATH}" =~ "${MYSLURM_VAR_DIR}" ]] ||
+	export MODULEPATH=${MYSLURM_VAR_DIR}:${MODULEPATH}
+
 # Cleanup and var regeneration
 rm -rf ${MYSLURM_VAR_DIR}/slurm*
-mkdir -p ${MYSLURM_VAR_DIR}/slurmd ${MYSLURM_VAR_DIR}/slurmctld
+mkdir -p ${MYSLURM_VAR_DIR}/slurmd ${MYSLURM_VAR_DIR}/slurmctld ${MYSLURM_VAR_DIR}/myslurm
 echo "" > ${MYSLURM_VAR_DIR}/accounting   # clear the file.
 
 # Get system info: nodes (local and remote), cores, sockets, cpus, memory
@@ -57,22 +57,24 @@ MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 	echo ""
 } > ${MYSLURM_CONF_FILE}
 
+cp myslurm.lua ${MYSLURM_VAR_DIR}/myslurm/personal.lua
+
 # Print hostname from remotes to stdout ==============================
 echo "# Master: ${MYSLURM_MASTER}"
 mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/# SLAVE: /"
 
 # Start the server and client ========================================
-./mywrapper.sh ${MYSLURM_SBIN_DIR}/slurmctld -cdvif ${MYSLURM_CONF_FILE}
+./mywrapper.sh ${MYSLURM_ROOT}/sbin/slurmctld -cdvif ${MYSLURM_CONF_FILE}
 
 mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} \
-			./mywrapper.sh ${MYSLURM_SBIN_DIR}/slurmd -cvf ${MYSLURM_CONF_FILE}
-
-echo "MYSLURM_CONF_FILE=${MYSLURM_CONF_FILE}"
+			./mywrapper.sh ${MYSLURM_ROOT}/sbin/slurmd -cvf ${MYSLURM_CONF_FILE}
 
 # Use this command to call slurm commands example: myslurm squeue
 myslurm () {
-	SLURM_CONF=${MYSLURM_CONF_FILE} ${MYSLURM_BIN_DIR}/$@
+	SLURM_CONF=${MYSLURM_CONF_FILE} ${MYSLURM_ROOT}/bin/$@
 }
+
+env | grep "MYSLURM" | sed -e "s/^/# /"
 
 export -f myslurm
 # # echo "# From inside"
