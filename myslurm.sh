@@ -23,8 +23,6 @@ export MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
 rm -rf ${MYSLURM_VAR_DIR}/slurm*
 mkdir -p ${MYSLURM_VAR_DIR}/slurmd ${MYSLURM_VAR_DIR}/slurmctld
 echo "" > ${MYSLURM_VAR_DIR}/accounting   # clear the file.
-echo "" > ${MYSLURM_VAR_DIR}/slurmctld/job_state   # clear the file.
-echo "" > ${MYSLURM_VAR_DIR}/slurmctld/resv_state   # clear the file.
 
 # Generate key (only once, not using this now.)
 # [ -f myslurm.crt ] ||
@@ -39,8 +37,8 @@ export MYSLURM_MASTER=$(hostname)                    # Master node
 NODELIST=$(scontrol show hostname | paste -d" " -s)
 REMOTE_LIST=(${NODELIST/"${MYSLURM_MASTER}"})       # List of remote nodes (removing master)
 
-MYSLURM_SLAVES=${REMOTE_LIST[*]}                    # "node1 node2 node3"
-export MYSLURM_SLAVES=${MYSLURM_SLAVES// /,}        # "node1 node2 node3"
+SLURM_SLAVES=${REMOTE_LIST[*]}                    # "node1 node2 node3"
+export MYSLURM_SLAVES=${SLURM_SLAVES// /,}        # "node1 node2 node3"
 export MYSLURM_NSLAVES=${#REMOTE_LIST[@]}           # number of slaves
 
 if ((MYSLURM_NSLAVES == 0)); then
@@ -62,7 +60,7 @@ MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 		mkdir ${MYSLURM_VAR_DIR}/slurmd.${node}
 		echo "NodeName=$node Sockets=${NSOCS} CoresPerSocket=${NCPS} ThreadsPerCore=1 State=Idle"
 	done
-	echo "PartitionName=malleability Nodes=${REMOTE_LIST// /,} Default=YES MaxTime=INFINITE State=UP"
+	echo "PartitionName=malleability Nodes=ALL Default=YES MaxTime=INFINITE State=UP"
 	echo ""
 } > ${MYSLURM_CONF_FILE}
 
@@ -93,14 +91,14 @@ mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/#
 
 # Start the server ===================================================
 # I use a wapper script here because otherwise MPI will kill the
-# remote process on finish inmediately.
+# remote process on finish immediately.
 # -D: foreground
 # -d: background
 # -c: clear
 # -v: Verbose operation. Multiple -v's increase verbosity.
 # -i: Ignore errors found while reading in state files on startup.
 # -f: SLURM_CONF
-./mywrapper.sh ${MYSLURM_SBIN_DIR}/slurmctld -cDvif ${MYSLURM_CONF_FILE} &
+./mywrapper.sh ${MYSLURM_SBIN_DIR}/slurmctld -cdvif ${MYSLURM_CONF_FILE}
 
 # Start the clients ==================================================
 # -D: Same as before
