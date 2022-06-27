@@ -24,14 +24,7 @@ rm -rf ${MYSLURM_VAR_DIR}/slurm*
 mkdir -p ${MYSLURM_VAR_DIR}/slurmd ${MYSLURM_VAR_DIR}/slurmctld
 echo "" > ${MYSLURM_VAR_DIR}/accounting   # clear the file.
 
-# Generate key (only once, not using this now.)
-# [ -f myslurm.crt ] ||
-# 	openssl req -x509 -sha256 -days 3650 -newkey rsa -config myslurm.cnf -keyout myslurm.key -out myslurm.crt
-# [ -f ${MYSLURM_CONF_DIR}/slurm.crt ] || cp myslurm.crt ${MYSLURM_CONF_DIR}/slurm.crt
-# [ -f ${MYSLURM_CONF_DIR}/slurm.key ] || cp myslurm.key ${MYSLURM_CONF_DIR}/slurm.key
-
 # Get system info: nodes (local and remote), cores, sockets, cpus, memory
-
 export MYSLURM_MASTER=$(hostname)                    # Master node
 
 NODELIST=$(scontrol show hostname | paste -d" " -s)
@@ -68,20 +61,9 @@ MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 echo "# Master: ${MYSLURM_MASTER}"
 mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/# SLAVE: /"
 
-# Start the server ===================================================
-# I use a wapper script here because otherwise MPI will kill the
-# remote process on finish immediately.
-# -D: foreground
-# -d: background
-# -c: clear
-# -v: Verbose operation. Multiple -v's increase verbosity.
-# -i: Ignore errors found while reading in state files on startup.
-# -f: SLURM_CONF
+# Start the server and client ========================================
 ./mywrapper.sh ${MYSLURM_SBIN_DIR}/slurmctld -cdvif ${MYSLURM_CONF_FILE}
 
-# Start the clients ==================================================
-# -D: Same as before
-# -d: means something else (slurmstepd)
 mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} \
 			./mywrapper.sh ${MYSLURM_SBIN_DIR}/slurmd -cvf ${MYSLURM_CONF_FILE}
 
@@ -93,7 +75,6 @@ myslurm () {
 }
 
 export -f myslurm
-export -f myslurm_kill
 # # echo "# From inside"
 
 myslurm sinfo
