@@ -30,10 +30,15 @@ SlurmSchedLogFile=@MYSLURM_VAR_DIR@/slurm_scheduler.log
 
 SchedulerType=sched/backfill
 SchedulerParameters=bf_interval=10,bf_resolution=20
+
 PriorityType=priority/multifactor
 
 AccountingStorageType=accounting_storage/none
 ProctrackType=proctrack/linuxproc
+
+LaunchParameters=use_interactive_step
+
+TaskPlugin=task/affinity
 
 JobCompType=jobcomp/filetxt
 JobCompLoc=@MYSLURM_VAR_DIR@/job_completions
@@ -62,6 +67,8 @@ Waittime=0
 
 JobAcctGatherType=jobacct_gather/none
 JobAcctGatherParams=UsePss
+
+DefMemPerCPU=1870
 
 # Generated part after here.
 
