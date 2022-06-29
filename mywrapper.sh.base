@@ -13,6 +13,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-echo "Executing: $@ | $(hostname)"
-$@
-echo "Done: $! -> $? | $(hostname)"
+rm -rf @MUNGE_STATEDIR@
+
+mkdir -p @MUNGE_STATEDIR@/var @MUNGE_STATEDIR@/{lib,log,run}/munge
+
+@MUNGE_ROOT@/sbin/munged
+
+if [[ $(hostname) == @MYSLURM_MASTER@ ]]; then
+	@MYSLURM_ROOT@/sbin/slurmctld -cdvif @MYSLURM_CONF_FILE@
+else
+	@MYSLURM_ROOT@/sbin/slurmd -cDvf @MYSLURM_CONF_FILE@
+fi

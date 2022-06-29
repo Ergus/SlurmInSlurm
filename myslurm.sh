@@ -8,6 +8,9 @@ if [[ $0 == ${BASH_SOURCE[0]} ]]; then
     exit 1
 fi
 
+MUNGE_ROOT=${HOME}/install_mn/munge
+MUNGE_STATEDIR=/tmp/munge
+
 # You may change this one to yours
 MYSLURM_ROOT=${HOME}/install_mn/slurm
 MYSLURM_CONF_DIR=${MYSLURM_ROOT}/slurm-confdir
@@ -20,7 +23,9 @@ MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
 
 # Cleanup and var regeneration
 rm -rf ${MYSLURM_VAR_DIR}/slurm*
-mkdir -p ${MYSLURM_VAR_DIR}/slurmd ${MYSLURM_VAR_DIR}/slurmctld ${MYSLURM_VAR_DIR}/myslurm
+mkdir -p ${MYSLURM_VAR_DIR}/slurmd \
+	  ${MYSLURM_VAR_DIR}/slurmctld \
+	  ${MYSLURM_VAR_DIR}/myslurm
 echo "" > ${MYSLURM_VAR_DIR}/accounting   # clear the file.
 
 # Get system info: nodes (local and remote), cores, sockets, cpus, memory
@@ -85,12 +90,18 @@ mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/#
 } > ${MYSLURM_CONF_DIR}/topology.conf
 
 
+# Wrapper
+sed -e "s|@MUNGE_STATEDIR@|${MUNGE_STATEDIR}|g" \
+	-e "s|@MUNGE_ROOT@|${MUNGE_ROOT}|g" \
+	-e "s|@MYSLURM_MASTER@|${MYSLURM_MASTER}|g" \
+	-e "s|@MYSLURM_ROOT@|${MYSLURM_ROOT}|g" \
+	-e "s|@MYSLURM_CONF_FILE@|${MYSLURM_CONF_FILE}|g" \
+	mywrapper.sh.base > ${MYSLURM_CONF_DIR}/mywrapper.sh
+
+chmod a+x ${MYSLURM_CONF_DIR}/mywrapper.sh
+
 # Start the server and client ========================================
-./mywrapper.sh ${MYSLURM_ROOT}/sbin/slurmctld -cdvif ${MYSLURM_CONF_FILE}
-
-
-mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} \
-		./mywrapper.sh ${MYSLURM_ROOT}/sbin/slurmd -cDvf ${MYSLURM_CONF_FILE} &
+mpiexec -n $((MYSLURM_NSLAVES + 1)) --hosts=${NODELIST// /,} ${MYSLURM_CONF_DIR}/mywrapper.sh &
 
 # Use this command to call slurm commands example: myslurm squeue
 myslurm () {
@@ -118,3 +129,4 @@ export -f myslurm
 myslurm sinfo
 myslurm squeue
 
+module load myslurm

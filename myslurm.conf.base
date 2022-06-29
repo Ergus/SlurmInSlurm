@@ -21,8 +21,8 @@ SlurmdUser=bsc28860
 
 MailProg=/bin/true
 
-AuthType=auth/none
-CredType=cred/none
+AuthType=auth/munge
+CredType=cred/munge
 TopologyPlugin=topology/tree
 
 SlurmSchedLogLevel=1
