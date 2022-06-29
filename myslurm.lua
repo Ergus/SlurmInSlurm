@@ -27,4 +27,5 @@ prepend_path("C_INCLUDE_PATH" , PROG_HOME .. "/include")
 prepend_path("CPLUS_INCLUDE_PATH", PROG_HOME .. "/include")
 
 prepend_path("LD_LIBRARY_PATH" , PROG_HOME .. "/lib")
+prepend_path("LIBRARY_PATH" , PROG_HOME .. "/lib")
 prepend_path("LD_RUN_PATH" , PROG_HOME .. "/lib")

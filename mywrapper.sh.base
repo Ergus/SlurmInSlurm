@@ -20,7 +20,7 @@ mkdir -p @MUNGE_STATEDIR@/var @MUNGE_STATEDIR@/{lib,log,run}/munge
 @MUNGE_ROOT@/sbin/munged
 
 if [[ $(hostname) == @MYSLURM_MASTER@ ]]; then
-	@MYSLURM_ROOT@/sbin/slurmctld -cdvif @MYSLURM_CONF_FILE@
+	@MYSLURM_ROOT@/sbin/slurmctld -cDvif @MYSLURM_CONF_FILE@
 else
 	@MYSLURM_ROOT@/sbin/slurmd -cDvf @MYSLURM_CONF_FILE@
 fi
