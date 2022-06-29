@@ -13,29 +13,27 @@ MUNGE_STATEDIR=/tmp/munge
 
 # You may change this one to yours
 MYSLURM_ROOT=${HOME}/install_mn/slurm
+
 MYSLURM_CONF_DIR=${MYSLURM_ROOT}/slurm-confdir
-[[ -d "${MYSLURM_CONF_DIR}" ]] || \
-	echo "Error: conf directory ${MYSLURM_CONF_DIR} doesn't exist"
+[[ -d "${MYSLURM_CONF_DIR}" ]] || mkdir ${MYSLURM_CONF_DIR}
 
 MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
-[[ -d "${MYSLURM_VAR_DIR}" ]] || \
-	echo "Error: var directory ${MYSLURM_VAR_DIR} doesn't exist"
+[[ -d "${MYSLURM_VAR_DIR}" ]] || mkdir ${MYSLURM_VAR_DIR}
 
 # Cleanup and var regeneration
 rm -rf ${MYSLURM_VAR_DIR}/slurm*
-mkdir -p ${MYSLURM_VAR_DIR}/slurmd \
-	  ${MYSLURM_VAR_DIR}/slurmctld \
-	  ${MYSLURM_VAR_DIR}/myslurm
+mkdir -p ${MYSLURM_VAR_DIR}/{slurmd,slurmctld,myslurm}
+
 echo "" > ${MYSLURM_VAR_DIR}/accounting   # clear the file.
 
 # Get system info: nodes (local and remote), cores, sockets, cpus, memory
 MYSLURM_MASTER=$(hostname)                    # Master node
-
 NODELIST=$(scontrol show hostname | paste -d" " -s)
-REMOTE_LIST=(${NODELIST/"${MYSLURM_MASTER}"})       # List of remote nodes (removing master)
 
-SLURM_SLAVES=${REMOTE_LIST[*]}                    # "node1 node2 node3"
-MYSLURM_SLAVES=${SLURM_SLAVES// /,}        # "node1 node2 node3"
+REMOTE_LIST=(${NODELIST/"${MYSLURM_MASTER}"})       # List of remote nodes (removing master)
+_SLURM_SLAVES=${REMOTE_LIST[*]}                    # "node1 node2 node3"
+
+MYSLURM_SLAVES=${_SLURM_SLAVES// /,}        # "node1 node2 node3"
 MYSLURM_NSLAVES=${#REMOTE_LIST[@]}           # number of slaves
 
 if ((MYSLURM_NSLAVES == 0)); then
@@ -46,6 +44,8 @@ fi
 NSOCS=$(grep "physical id" /proc/cpuinfo | sort -u | wc -l) # Number of CPUS (sockets)
 NCPS=$(grep -c "physical id[[:space:]]\+: 0" /proc/cpuinfo) # cores per socket
 MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
+
+# Generate files =====================================================
 
 MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
 { # Create MYSLURM_CONF_FILE
@@ -65,10 +65,6 @@ MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
 # Copy the lua lmod
 [[ -f ${MYSLURM_VAR_DIR}/myslurm/personal.lua ]] ||
 	cp myslurm.lua ${MYSLURM_VAR_DIR}/myslurm/personal.lua
-
-# Print hostname from remotes to stdout ==============================
-echo "# Master: ${MYSLURM_MASTER}"
-mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/# SLAVE: /"
 
 { # Topology for marenostrum4
 	declare -A myarray=()
@@ -100,6 +96,10 @@ sed -e "s|@MUNGE_STATEDIR@|${MUNGE_STATEDIR}|g" \
 
 chmod a+x ${MYSLURM_CONF_DIR}/mywrapper.sh
 
+# Print hostname from remotes to stdout ==============================
+echo "# Master: ${MYSLURM_MASTER}"
+mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/# SLAVE: /"
+
 # Start the server and client ========================================
 mpiexec -n $((MYSLURM_NSLAVES + 1)) --hosts=${NODELIST// /,} ${MYSLURM_CONF_DIR}/mywrapper.sh &
 
@@ -110,7 +110,7 @@ myslurm () {
 
 env | grep "MYSLURM" | sed -e "s/^/# /"
 
-# Exports at the end to avoid modifying the environment on failure
+# Exports environment at the end to avoid modifying the environment
 export MYSLURM_ROOT=${MYSLURM_ROOT}
 export MYSLURM_CONF_DIR=${MYSLURM_CONF_DIR}
 export MYSLURM_CONF_FILE=${MYSLURM_CONF_FILE}
