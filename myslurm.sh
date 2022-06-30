@@ -8,33 +8,21 @@ if [[ $0 == ${BASH_SOURCE[0]} ]]; then
     exit 1
 fi
 
+# Hardcoded directories ==============================================
 MUNGE_ROOT=${HOME}/install_mn/munge
 MUNGE_STATEDIR=/tmp/munge
-
 # You may change this one to yours
 MYSLURM_ROOT=${HOME}/install_mn/slurm
 
-MYSLURM_CONF_DIR=${MYSLURM_ROOT}/slurm-confdir
-[[ -d "${MYSLURM_CONF_DIR}" ]] || mkdir ${MYSLURM_CONF_DIR}
-
-MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
-[[ -d "${MYSLURM_VAR_DIR}" ]] || mkdir ${MYSLURM_VAR_DIR}
-
-# Cleanup and var regeneration
-rm -rf ${MYSLURM_VAR_DIR}/slurm*
-mkdir -p ${MYSLURM_VAR_DIR}/{slurmd,slurmctld,myslurm}
-
-echo "" > ${MYSLURM_VAR_DIR}/accounting   # clear the file.
-
-# Get system info: nodes (local and remote), cores, sockets, cpus, memory
-MYSLURM_MASTER=$(hostname)                    # Master node
+# Get system info ====================================================
+MYSLURM_MASTER=$(hostname)                     # Master node
 NODELIST=$(scontrol show hostname | paste -d" " -s)
 
-REMOTE_LIST=(${NODELIST/"${MYSLURM_MASTER}"})       # List of remote nodes (removing master)
-_SLURM_SLAVES=${REMOTE_LIST[*]}                    # "node1 node2 node3"
+REMOTE_LIST=(${NODELIST/"${MYSLURM_MASTER}"})  # List of remote nodes (removing master)
+_SLURM_SLAVES=${REMOTE_LIST[*]}                # "node1 node2 node3"
 
-MYSLURM_SLAVES=${_SLURM_SLAVES// /,}        # "node1 node2 node3"
-MYSLURM_NSLAVES=${#REMOTE_LIST[@]}           # number of slaves
+MYSLURM_SLAVES=${_SLURM_SLAVES// /,}           # "node1,node2,node3"
+MYSLURM_NSLAVES=${#REMOTE_LIST[@]}             # number of slaves
 
 if ((MYSLURM_NSLAVES == 0)); then
 	echo "Error: MYSLURM_NSLAVES is zero (are you in the login node?)" >&2
@@ -45,6 +33,23 @@ NSOCS=$(grep "physical id" /proc/cpuinfo | sort -u | wc -l) # Number of CPUS (so
 NCPS=$(grep -c "physical id[[:space:]]\+: 0" /proc/cpuinfo) # cores per socket
 MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 
+# Create and clean directories =======================================
+MYSLURM_CONF_DIR=${MYSLURM_ROOT}/slurm-confdir
+[[ -d "${MYSLURM_CONF_DIR}" ]] || mkdir ${MYSLURM_CONF_DIR}
+
+MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
+[[ -d "${MYSLURM_VAR_DIR}" ]] || mkdir ${MYSLURM_VAR_DIR}
+
+# Cleanup and var regeneration
+rm -rf ${MYSLURM_VAR_DIR}/slurm*
+mkdir -p ${MYSLURM_VAR_DIR}/{slurmd,slurmctld,myslurm}
+
+echo "" > ${MYSLURM_VAR_DIR}/accounting        # clear the file.
+
+for node in ${REMOTE_LIST[@]}; do
+	mkdir ${MYSLURM_VAR_DIR}/slurmd.${node}
+done
+
 # Generate files =====================================================
 
 MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
@@ -54,10 +59,10 @@ MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
 
 	echo "SlurmctldHost=${MYSLURM_MASTER}"
 
-	for node in ${REMOTE_LIST[@]}; do
-		mkdir ${MYSLURM_VAR_DIR}/slurmd.${node}
-		echo "NodeName=$node Sockets=${NSOCS} CoresPerSocket=${NCPS} ThreadsPerCore=1 State=Idle"
-	done
+	REALMEM=$(((MEMORY / 1024 / 1024) * 1024))
+	NODENAMES=$(scontrol show hostlistsorted ${MYSLURM_SLAVES})
+
+	echo "NodeName=${NODENAMES} Sockets=${NSOCS} CoresPerSocket=${NCPS} ThreadsPerCore=1 MemSpecLimit=4000 RealMemory=${REALMEM}"
 	echo "PartitionName=malleability Nodes=ALL Default=YES MaxTime=INFINITE State=UP"
 	echo ""
 } > ${MYSLURM_CONF_FILE}
@@ -85,7 +90,6 @@ MYSLURM_CONF_FILE=${MYSLURM_CONF_DIR}/slurm.conf
 
 } > ${MYSLURM_CONF_DIR}/topology.conf
 
-
 # Wrapper
 sed -e "s|@MUNGE_STATEDIR@|${MUNGE_STATEDIR}|g" \
 	-e "s|@MUNGE_ROOT@|${MUNGE_ROOT}|g" \
@@ -96,19 +100,16 @@ sed -e "s|@MUNGE_STATEDIR@|${MUNGE_STATEDIR}|g" \
 
 chmod a+x ${MYSLURM_CONF_DIR}/mywrapper.sh
 
-# Print hostname from remotes to stdout ==============================
+# Print information ==================================================
 echo "# Master: ${MYSLURM_MASTER}"
 mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/# SLAVE: /"
 
-# Start the server and client ========================================
+env | grep "MYSLURM" | sed -e "s/^/# /"
+
+# Start the servers and clients ======================================
 mpiexec -n $((MYSLURM_NSLAVES + 1)) --hosts=${NODELIST// /,} ${MYSLURM_CONF_DIR}/mywrapper.sh &
 
-# Use this command to call slurm commands example: myslurm squeue
-myslurm () {
-	SLURM_CONF=${MYSLURM_CONF_FILE} ${MYSLURM_ROOT}/bin/$@
-}
-
-env | grep "MYSLURM" | sed -e "s/^/# /"
+# Exports ============================================================
 
 # Exports environment at the end to avoid modifying the environment
 export MYSLURM_ROOT=${MYSLURM_ROOT}
@@ -123,6 +124,9 @@ export MYSLURM_NSLAVES=${MYSLURM_NSLAVES}      # number of slaves
 [[ "${MODULEPATH}" =~ "${MYSLURM_VAR_DIR}" ]] ||
 	export MODULEPATH=${MYSLURM_VAR_DIR}:${MODULEPATH}
 
+myslurm () {
+	SLURM_CONF=${MYSLURM_CONF_FILE} ${MYSLURM_ROOT}/bin/$@
+}
 export -f myslurm
 # # echo "# From inside"
 
