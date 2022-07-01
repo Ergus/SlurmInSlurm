@@ -16,8 +16,8 @@
 ClusterName=MalleableSlurm
 FirstJobId=1
 
-SlurmUser=bsc28860
-SlurmdUser=bsc28860
+SlurmUser=@MYSLURM_USER@
+SlurmdUser=@MYSLURM_USER@
 
 MailProg=/bin/true
 
@@ -33,7 +33,12 @@ SchedulerParameters=bf_interval=10,bf_resolution=20
 
 PriorityType=priority/multifactor
 
-AccountingStorageType=accounting_storage/none
+AccountingStorageType=accounting_storage/slurmdbd
+AccountingStorageUser=@MYSLURM_USER@
+AccountingStorageHost=localhost
+AccountingStoragePort=@MYSLURM_DBD_PORT@
+AccountingStorageEnforce=associations,limits,qos
+
 ProctrackType=proctrack/linuxproc
 
 LaunchParameters=use_interactive_step
@@ -45,18 +50,20 @@ JobCompLoc=@MYSLURM_VAR_DIR@/job_completions
 
 MessageTimeout=30
 
-SlurmctldDebug=info
+SlurmctldDebug=debug5
+SlurmctldSyslogDebug=debug5
 SlurmctldLogFile=@MYSLURM_VAR_DIR@/slurmctld.log
 SlurmctldPidFile=@MYSLURM_VAR_DIR@/slurmctld.pid
-SlurmctldPort=7010
+SlurmctldPort=7020
 SlurmctldTimeout=300
 
-SlurmdDebug=info
+SlurmdDebug=debug5
+SlurmdSyslogDebug=debug5
 StateSaveLocation=@MYSLURM_VAR_DIR@
 SlurmdLogFile=@MYSLURM_VAR_DIR@/slurmd.%n.log
 SlurmdSpoolDir=@MYSLURM_VAR_DIR@/slurmd.%n
 SlurmdPidFile=@MYSLURM_VAR_DIR@/slurmd.%n.pid
-SlurmdPort=7011
+SlurmdPort=7021
 SlurmdTimeout=300
 
 # Obsolete
@@ -68,7 +75,8 @@ Waittime=0
 JobAcctGatherType=jobacct_gather/none
 JobAcctGatherParams=UsePss
 
-DefMemPerCPU=1870
+PropagateResourceLimits=NONE
 
-# Generated part after here.
-
+SlurmctldHost=@MYSLURM_MASTER@(@MYSLURM_IP@)
+NodeName=@NODENAMES@ Sockets=@NSOCS@ CoresPerSocket=@NCPS@ ThreadsPerCore=1 RealMemory=@REALMEM@
+PartitionName=malleability Nodes=ALL Default=YES MaxTime=INFINITE State=UP
