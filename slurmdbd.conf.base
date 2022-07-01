@@ -13,22 +13,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-rm -rf @MUNGE_STATEDIR@
 
-mkdir -p @MUNGE_STATEDIR@/var @MUNGE_STATEDIR@/{lib,log,run}/munge
+AuthType=auth/munge
 
-# Munge
-@MUNGE_ROOT@/sbin/munged
+SlurmUser=@MYSLURM_USER@
+DbdHost=@MYSLURM_MASTER@
+DbdAddr=@MYSLURM_IP@
+DbdPort=@MYSLURM_DBD_PORT@
+DebugLevel=debug5
+DebugLevelSyslog=debug5
 
-SLURM_CONF=@MYSLURM_CONF_DIR@/slurm.conf
+LogFile=@MYSLURM_VAR_DIR@/slurmdbd.log
+PidFile=@MYSLURM_VAR_DIR@/slurmdbd.pid
 
-if [[ $(hostname) == @MYSLURM_MASTER@ ]]; then
-	# MariaDB
-	@MYSLURM_ROOT@/sbin/slurmdbd -Dv &    # Slurmdb server
+StorageType=accounting_storage/mysql
 
-	sleep 5 # Time to create the socket
+StorageHost=localhost
+StorageUser=@MYSLURM_USER@
+StoragePort=@MARIADB_PORT@
 
-	@MYSLURM_ROOT@/sbin/slurmctld -cDvi  # Slurm server
-else
-	@MYSLURM_ROOT@/sbin/slurmd -cDv
-fi
+StorageLoc=slurm_acct_db
