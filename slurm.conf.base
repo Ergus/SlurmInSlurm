@@ -75,6 +75,8 @@ Waittime=0
 JobAcctGatherType=jobacct_gather/none
 JobAcctGatherParams=UsePss
 
+SchedulerParameters=permit_job_expansion
+
 PropagateResourceLimits=NONE
 
 SlurmctldHost=@MYSLURM_MASTER@(@MYSLURM_IP@)
