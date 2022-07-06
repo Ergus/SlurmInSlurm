@@ -20,6 +20,9 @@ MYSLURM_ROOT=${HOME}/install_mn/slurm
 MYSLURM_USER=bsc28860
 MYSLURM_DBD_PORT=7101
 
+# MPICH
+MYMPICH_ROOT=${HOME}/install_mn/mpich_myslurm
+
 # Get system info ====================================================
 MYSLURM_MASTER=$(hostname)                     # Master node
 MYSLURM_IP=$(hostname -i)                      # Master ip
@@ -45,7 +48,7 @@ MYSLURM_VAR_DIR=${MYSLURM_CONF_DIR}/var
 
 # Cleanup and var regeneration
 rm -rf ${MYSLURM_VAR_DIR}/slurm*
-mkdir -p ${MYSLURM_VAR_DIR}/{slurmd,slurmctld,myslurm}
+mkdir -p ${MYSLURM_VAR_DIR}/{slurmd,slurmctld}
 
 echo "" > ${MYSLURM_VAR_DIR}/accounting        # clear the file.
 
@@ -110,11 +113,6 @@ sed -e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
 	-e "s|@NCPS@|${NCPS}|g" \
 	slurm.conf.base > ${MYSLURM_CONF_DIR}/slurm.conf
 
-
-# Copy the lua lmod
-[[ -f ${MYSLURM_VAR_DIR}/myslurm/personal.lua ]] ||
-	cp myslurm.lua ${MYSLURM_VAR_DIR}/myslurm/personal.lua
-
 { # Topology for marenostrum4
 	declare -A myarray=()
 	for node in ${REMOTE_LIST[@]}; do
@@ -173,13 +171,22 @@ mpiexec -n $((MYSLURM_NSLAVES + 1)) --hosts=${NODELIST// /,} ${MYSLURM_CONF_DIR}
 export MYSLURM_ROOT=${MYSLURM_ROOT}
 export MYSLURM_CONF_DIR=${MYSLURM_CONF_DIR}
 export MYSLURM_VAR_DIR=${MYSLURM_VAR_DIR}
+export MYSLURM_NSLAVES=${MYSLURM_NSLAVES}      # number of slaves
 
 export MYSLURM_MASTER=${MYSLURM_MASTER}
 export MYSLURM_SLAVES=${MYSLURM_SLAVES}        # "node1 node2 node3"
-export MYSLURM_NSLAVES=${MYSLURM_NSLAVES}      # number of slaves
+export MYMPICH_ROOT=${MYMPICH_ROOT}            # mpich
+
+for mod in *.lua; do
+	dirname=${MYSLURM_VAR_DIR}/${mod%.lua}
+	[[ -d ${dirname} ]] || mkdir ${dirname}
+	[[ -f ${dirname}/personal.lua ]] || cp ${mod} ${dirname}/personal.lua
+	echo "Creating ${dirname}/personal.lua"
+done
 
 [[ "${MODULEPATH}" =~ "${MYSLURM_VAR_DIR}" ]] ||
 	export MODULEPATH=${MYSLURM_VAR_DIR}:${MODULEPATH}
+
 
 myslurm () {
 	SLURM_CONF=${MYSLURM_CONF_DIR}/slurm.conf ${MYSLURM_ROOT}/bin/$@
@@ -190,7 +197,7 @@ export -f myslurm
 myslurm sinfo
 myslurm squeue
 
-module load myslurm
+module load myslurm mympich
 
 #create account 
 sacctmgr create user name=${MYSLURM_USER=bsc28860} DefaultAccount=root AdminLevel=Admin

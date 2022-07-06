@@ -16,9 +16,6 @@
 ClusterName=MalleableSlurm
 FirstJobId=1
 
-SlurmUser=@MYSLURM_USER@
-SlurmdUser=@MYSLURM_USER@
-
 MailProg=/bin/true
 
 AuthType=auth/munge
@@ -29,7 +26,7 @@ SlurmSchedLogLevel=1
 SlurmSchedLogFile=@MYSLURM_VAR_DIR@/slurm_scheduler.log
 
 SchedulerType=sched/backfill
-SchedulerParameters=bf_interval=10,bf_resolution=20
+SchedulerParameters=permit_job_expansion,bf_interval=10,bf_resolution=20
 
 PriorityType=priority/multifactor
 
@@ -50,6 +47,8 @@ JobCompLoc=@MYSLURM_VAR_DIR@/job_completions
 
 MessageTimeout=30
 
+
+SlurmdUser=@MYSLURM_USER@
 SlurmctldDebug=debug5
 SlurmctldSyslogDebug=debug5
 SlurmctldLogFile=@MYSLURM_VAR_DIR@/slurmctld.log
@@ -57,6 +56,7 @@ SlurmctldPidFile=@MYSLURM_VAR_DIR@/slurmctld.pid
 SlurmctldPort=7020
 SlurmctldTimeout=300
 
+SlurmUser=@MYSLURM_USER@
 SlurmdDebug=debug5
 SlurmdSyslogDebug=debug5
 StateSaveLocation=@MYSLURM_VAR_DIR@
@@ -66,16 +66,11 @@ SlurmdPidFile=@MYSLURM_VAR_DIR@/slurmd.%n.pid
 SlurmdPort=7021
 SlurmdTimeout=300
 
-# Obsolete
-#AccountingStorageLoc=@MYSLURM_VAR_DIR@/accounting
-
 ReturnToService=1
 Waittime=0
 
 JobAcctGatherType=jobacct_gather/none
 JobAcctGatherParams=UsePss
-
-SchedulerParameters=permit_job_expansion
 
 PropagateResourceLimits=NONE
 
