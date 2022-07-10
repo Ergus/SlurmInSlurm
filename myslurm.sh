@@ -200,4 +200,4 @@ myslurm squeue
 module load myslurm mympich
 
 #create account 
-sacctmgr create user name=${MYSLURM_USER=bsc28860} DefaultAccount=root AdminLevel=Admin
+sacctmgr -i create user name=${MYSLURM_USER=bsc28860} DefaultAccount=root AdminLevel=Admin
