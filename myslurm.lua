@@ -16,9 +16,6 @@ LmodMessage("load " .. PROG_NAME .. " version " .. PROG_VERSION)
 
 -- Tests of consistency
 
--- Enviroment variables for NANOS6
-setenv("SLURM_CONF" , PROG_HOME .. "/slurm-confdir/slurm.conf")
-
 -- Path
 prepend_path("PATH" , PROG_HOME .. "/bin")
 prepend_path("PATH" , PROG_HOME .. "/sbin")
@@ -31,3 +28,14 @@ prepend_path("LIBRARY_PATH" , PROG_HOME .. "/lib")
 prepend_path("LD_RUN_PATH" , PROG_HOME .. "/lib")
 
 prepend_path("MANPATH",   PROG_HOME .. "/share/man")
+
+-- clear previous environment
+for i in capture("env"):gmatch("(SLURM%S+)=") do
+    -- With a newer lmod the best may be to use pushenv(i, false)
+    unsetenv(i)
+end
+
+-- Enviroment variables for NANOS6
+setenv("SLURM_CONF" , PROG_HOME .. "/slurm-confdir/slurm.conf")
+setenv("SLURM_EXACT", 1)
+setenv("SLURM_MEM_PER_CPU", 1800)
