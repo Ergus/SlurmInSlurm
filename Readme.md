@@ -11,22 +11,23 @@ Previous installation
 A general guide about installing slurm is here
 [Install_Slurm](https://southgreenplatform.github.io/trainings/hpc/slurminstallation/)
 
-As our system (nested inside slurm and without root permissions) has
+Our system (nested inside slurm and without root permissions) has
 special requirements; we need to take into account:
 
 ### Munge
 
-1. Munge needs to be installed for the current user, not need to add group or extra user.
+1. Munge needs to be installed for the current user, not need to add
+   group or extra user.
 
-2. Installation form sources, so, download it from here:
+2. Installation from sources, so, download it from here:
    [munge](https://github.com/dun/munge/releases/tag/munge-0.5.15)
 
 3. Munge state needs to be local in every node, but the installation
    and executable may be shared. So we set the state in the
-   `/tmp/munge` directory because `/tmp` is generally not shared
-   because it is a tmpfs.
+   `/tmp/munge` directory because `/tmp` is not shared; (it is a
+   *tmpfs* local to every node).
 
-3. For munge we define the variables:
+4. For munge we define the variables:
 
 ```shell
 MUNGE_ROOT=${HOME}/install_DIR/munge
@@ -39,12 +40,13 @@ MUNGE_STATEDIR=/tmp/munge
 
 We try to use the database in a local setup, without any configuration
 required. In case your system already has a database, then you may
-modify the script database part to not start it but use the existing
-one.
+modify the script database variables to not start it but use the
+existing one. We assume here you have a mysql installation in your
+path.
 
 ### Slurm
 
-After munge install Slurm. The order is ompised because we need to
+After munge install Slurm. The order is important because we need to
 specify the munge location to slurm at configure time.
 
 1. You don't need to use the same slurm library than the one in your
@@ -63,76 +65,62 @@ MYSLURM_ROOT=${HOME}/install_DIR/slurm
 
 ### MPI
 
+It is very likely that your system already have some mpi library
+installed. And the outer slurm provide then an **srun** command. We
+require that.
+
 Some MPI versions (like MPICH) are linked to the slurm library
-including version number; this means that we need two installations,
-one for outside to start the services and the other from inside to use
-in the environment. For the outer environment there is no difference.
+including version number; this means that we need a second
+installation from inside the nested session to use in our environment.
 
-For the nested one:
+To install the nested MPI:
 
-1. MPICH needs to be downloaded from the sources because *autoreconf*
+1. The nested slurm needs to be build AFTER loading the module for the
+   first time with `MPICH_ROOT` unset.
+
+2. MPICH needs to be downloaded from the sources because *autoreconf*
    fail with relatively (no so) old versions.
 
-2. Before building the inner MPICH you need to assert that it will
-   link against your slurm library and not the global one. You need
-   this before building MPICH:
+3. Before building the inner MPICH you need to assert that it will
+   link against your slurm library and not the global one, that's why
+   it needs to be built in a nested session:
 
 ```shell
+salloc -N 1 --exclusive -t 02:00:00 # In the nested slurm
+
 MPICH_ROOT=${HOME}/install_DIR/mpich
 export LIBRARY_PATH=${MYSLURM_ROOT}/lib:${LIBRARY_PATH}
 
-./configure --prefix=${MPICH_ROOT} \
-	--with-libfabric=embedded --with-hwloc=embedded --disable-fortran \
-	--disable-romio --with-datatype-engine=dataloop \
-	--enable-ch4-netmod-inline --without-ch4-shmods
+./configure --prefix=${MPICH_ROOT} --with-libfabric=embedded \
+	        --with-hwloc=embedded  --with-datatype-engine=dataloop \
+			--enable-ch4-netmod-inline --without-ch4-shmods
 ```
 
 Usage
 -----
 
-And then follow these steps:
+To use this module there are two simple alternatives:
 
-1. Export the variable `MYSLURM_ROOT` to the base slurm installation
-   directory, we expect `bin`, `sbin`, `slurm-confdir` (can be empty),
-   and the other common directories (`include`, `lib`, `doc`...) to be
-   there:
-
+1. If all the installation is fine, then the next time you just need
+   to do:
 ```shell
-export MYSLURM_ROOT=/some/path/to/slurm
-```
-
-2. Get an interactive session in your slurm server, for example:
-```shell
-salloc -q debug -N 4 --exclusive -t 02:00:00
-```
-
-3. Once in the section load the module:
-```shell
+salloc -q debug -N XXX --exclusive -t 02:00:00 # In the external slurm
 source myslurm.sh
 ```
 
-4. Use it. If everything was fine the expected output may show the
-   local (server) and remote (slaves) commands and the new environment
-   variables created.
+This will start the server and sets the current environment to use the
+new nested slurm only.
 
-   There are two options to access the commands.
+This step also creates a script: */tmp/myslurm_load.sh* in the */tmp*
+directory of the master node. (You know the master node reading the
+output of this step)
 
-	a. Use the wrapper function to keep access to you `parent` slurm
-       environment. Ex:
-	```shell
-	myslurm squeue
-	myslurm sinfo
-	```
+2. If the server is already running but you want to access it from
+   another shell you just need to do:
+```shell
+ssh MASTERNODE
+source /tmp/myslurm_load.sh
+```
 
-	b. Use the lmod module to access only the new environment. Ex:
-
-	```shell
-	module load myslurm
-	squeue
-	sinfo
-	...
-	# When you finish you can restore the environment
-	module unload myslurm
-	```
-
-	The module is loaded by default.
+After this you are in the nested session and you can *sbatch*, *srun*,
+*salloc* and so on.
