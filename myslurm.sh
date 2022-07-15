@@ -77,10 +77,10 @@ mysqld_safe --verbose \
 
 # Start server
 while ! [[ -S ${MYSQL_UNIX_PORT} ]] ; do
-  echo "Waiting mysql socket: ${MYSQL_UNIX_PORT}"
+  echo "# Waiting mysql socket: ${MYSQL_UNIX_PORT}"
   sleep 1
 done
-echo "Waiting mysql done"
+echo "# Waiting mysql done"
 
 MARIADB_CMD="GRANT ALL ON slurm_acct_db.* TO '${MYSLURM_USER}'@'localhost' WITH GRANT OPTION;"
 MARIADB_CMD="GRANT ALL ON slurm_acct_db.* TO '${MYSLURM_USER}'@'localhost' WITH GRANT OPTION;"
@@ -166,7 +166,6 @@ env | grep "MYSLURM" | sed -e "s/^/# /"
 mpiexec -n $((MYSLURM_NSLAVES + 1)) --hosts=${NODELIST// /,} ${MYSLURM_CONF_DIR}/mywrapper.sh &
 
 # Exports ============================================================
-
 # Exports environment at the end to avoid modifying the environment
 export MYSLURM_ROOT=${MYSLURM_ROOT}
 export MYSLURM_CONF_DIR=${MYSLURM_CONF_DIR}
@@ -176,6 +175,9 @@ export MYSLURM_NSLAVES=${MYSLURM_NSLAVES}      # number of slaves
 export MYSLURM_MASTER=${MYSLURM_MASTER}
 export MYSLURM_SLAVES=${MYSLURM_SLAVES}        # "node1 node2 node3"
 export MYMPICH_ROOT=${MYMPICH_ROOT}            # mpich
+
+env | grep "MYSLURM" | sed -e "s/^/# /"
+echo "# MYMPICH_ROOT=${MYMPICH_ROOT}"
 
 for mod in *.lua; do
 	dirname=${MYSLURM_VAR_DIR}/${mod%.lua}
@@ -192,12 +194,15 @@ myslurm () {
 	SLURM_CONF=${MYSLURM_CONF_DIR}/slurm.conf ${MYSLURM_ROOT}/bin/$@
 }
 export -f myslurm
-# # echo "# From inside"
 
+# Check that the myslurm command works
 myslurm sinfo
 myslurm squeue
 
 module load myslurm mympich
 
-#create account 
+#create account
 sacctmgr -i create user name=${MYSLURM_USER=bsc28860} DefaultAccount=root AdminLevel=Admin
+
+echo "# Test that internal srun works:"
+srun -n ${MYSLURM_NSLAVES} -c $((NSOCS * NCPS)) hostname | sed -e "s/^/# Node: /"
