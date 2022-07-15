@@ -83,7 +83,6 @@ done
 echo "# Waiting mysql done"
 
 MARIADB_CMD="GRANT ALL ON slurm_acct_db.* TO '${MYSLURM_USER}'@'localhost' WITH GRANT OPTION;"
-MARIADB_CMD="GRANT ALL ON slurm_acct_db.* TO '${MYSLURM_USER}'@'localhost' WITH GRANT OPTION;"
 MARIADB_CMD+="CREATE DATABASE slurm_acct_db;"
 MARIADB_CMD+="FLUSH PRIVILEGES;"
 
@@ -156,6 +155,20 @@ sed -e "s|@MUNGE_STATEDIR@|${MUNGE_STATEDIR}|g" \
 
 chmod a+x ${MYSLURM_CONF_DIR}/mywrapper.sh
 
+# Create the load script to use in other shells.
+sed -e "s|@MYSLURM_ROOT@|${MYSLURM_ROOT}|g" \
+	-e "s|@MYSLURM_CONF_DIR@|${MYSLURM_CONF_DIR}|g" \
+	-e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
+	-e "s|@MYSLURM_NSLAVES@|${MYSLURM_NSLAVES}|g" \
+	-e "s|@MYSLURM_MASTER@|${MYSLURM_MASTER}|g" \
+	-e "s|@MYSLURM_SLAVES@|${MYSLURM_SLAVES}|g" \
+	-e "s|@MYMPICH_ROOT@|${MYMPICH_ROOT}|g" \
+	myslurm_load.sh.base > /tmp/myslurm_load.sh
+
+# Remove mpich variables if not available
+[[ -z ${MYMPICH_ROOT} ]] && \
+	sed -i '/^# MPICH/,/^# EOF/{//!d;};' /tmp/mympich_load.sh
+
 # Print information ==================================================
 echo "# Master: ${MYSLURM_MASTER}"
 # This also checks that the external srun command is working fine...
@@ -170,41 +183,14 @@ srun -n $((MYSLURM_NSLAVES + 1)) -c $((NSOCS * NCPS)) ${MYSLURM_CONF_DIR}/mywrap
 
 # Exports ============================================================
 # Exports environment at the end to avoid modifying the environment
-export MYSLURM_ROOT=${MYSLURM_ROOT}
-export MYSLURM_CONF_DIR=${MYSLURM_CONF_DIR}
-export MYSLURM_VAR_DIR=${MYSLURM_VAR_DIR}
-export MYSLURM_NSLAVES=${MYSLURM_NSLAVES}      # number of slaves
-
-export MYSLURM_MASTER=${MYSLURM_MASTER}
-export MYSLURM_SLAVES=${MYSLURM_SLAVES}        # "node1 node2 node3"
-export MYMPICH_ROOT=${MYMPICH_ROOT}            # mpich
 
 env | grep "MYSLURM" | sed -e "s/^/# /"
 echo "# MYMPICH_ROOT=${MYMPICH_ROOT}"
 
-for mod in *.lua; do
-	dirname=${MYSLURM_VAR_DIR}/${mod%.lua}
-	[[ -d ${dirname} ]] || mkdir ${dirname}
-	cat ${mod} > ${dirname}/personal.lua
-	echo "# Creating ${dirname}/personal.lua"
-done
+# load the environment here. We need it to call sacctmgr.
+source /tmp/myslurm_load.sh
 
-[[ "${MODULEPATH}" =~ "${MYSLURM_VAR_DIR}" ]] ||
-	export MODULEPATH=${MYSLURM_VAR_DIR}:${MODULEPATH}
-
-
-myslurm () {
-	SLURM_CONF=${MYSLURM_CONF_DIR}/slurm.conf ${MYSLURM_ROOT}/bin/$@
-}
-export -f myslurm
-
-# Check that the myslurm command works
-myslurm sinfo
-myslurm squeue
-
-module load myslurm mympich
-
-#create account
+echo "# Create account"
 sacctmgr -i create user name=${MYSLURM_USER=bsc28860} DefaultAccount=root AdminLevel=Admin
 
 echo "# Test that internal srun works:"

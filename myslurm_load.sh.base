@@ -1,0 +1,62 @@
+#
+# Author: Jimmy Aguilar Mena
+# Date: Jul 14, 2022
+#
+
+if [[ $0 == ${BASH_SOURCE[0]} ]]; then
+    echo "Don't run $0, source it" >&2
+    exit 1
+fi
+
+# clear previous slurm environment
+while IFS='=' read -r -d '' n v; do
+	if [[ $n == SLURM* ]]; then
+		echo "unset $n=$v"
+		unset $n
+	fi
+done < <(env -0)
+
+# MYSLURM
+export MYSLURM_ROOT="@MYSLURM_ROOT@"
+export MYSLURM_CONF_DIR="@MYSLURM_CONF_DIR@"
+export MYSLURM_VAR_DIR="@MYSLURM_VAR_DIR@"
+export MYSLURM_NSLAVES="@MYSLURM_NSLAVES@"
+export MYSLURM_MASTER="@MYSLURM_MASTER@"
+export MYSLURM_SLAVES="@MYSLURM_SLAVES@"
+
+export SLURM_CONF="@MYSLURM_CONF_DIR@/slurm.conf"
+export SLURM_EXACT=1
+export SLURM_MEM_PER_CPU=1800
+
+# PATHS
+export PATH="${MYSLURM_ROOT}/bin:${PATH}"
+export PATH="${MYSLURM_ROOT}/sbin:${PATH}"
+
+export C_INCLUDE_PATH="${MYSLURM_ROOT}/include:${C_INCLUDE_PATH}"
+export CPLUS_INCLUDE_PATH="${MYSLURM_ROOT}/include:${CPLUS_INCLUDE_PATH}"
+
+export LD_LIBRARY_PATH="${MYSLURM_ROOT}/lib:${LD_LIBRARY_PATH}"
+export LIBRARY_PATH="${MYSLURM_ROOT}/lib:${LIBRARY_PATH}"
+export LD_RUN_PATH="${MYSLURM_ROOT}/lib:${LD_RUN_PATH}"
+
+export MANPATH="${MYSLURM_ROOT}/share/man:${MANPATH}"
+
+# Print base information always.
+sinfo
+squeue
+
+# MPICH
+export MYMPICH_ROOT="@MYMPICH_ROOT@"
+
+export PATH="${MYMPICH_ROOT}/bin:${PATH}"
+
+export C_INCLUDE_PATH="${MYMPICH_ROOT}/include:${C_INCLUDE_PATH}"
+export CPLUS_INCLUDE_PATH="${MYMPICH_ROOT}/include:${CPLUS_INCLUDE_PATH}"
+
+export LD_LIBRARY_PATH="${MYMPICH_ROOT}/lib:${LD_LIBRARY_PATH}"
+export LIBRARY_PATH="${MYMPICH_ROOT}/lib:${LIBRARY_PATH}"
+
+export LD_RUN_PATH="${MYMPICH_ROOT}/lib:${LD_RUN_PATH}"
+
+export MANPATH="${MYMPICH_ROOT}/share/man:${MANPATH}"
+# EOF
