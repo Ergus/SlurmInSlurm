@@ -18,9 +18,15 @@ FirstJobId=1
 
 MailProg=/bin/true
 
+MpiDefault=pmi2
+
+SwitchType=switch/none
+
 AuthType=auth/munge
 CredType=cred/munge
+
 TopologyPlugin=topology/tree
+TreeWidth=22
 
 SlurmSchedLogLevel=1
 SlurmSchedLogFile=@MYSLURM_VAR_DIR@/slurm_scheduler.log
