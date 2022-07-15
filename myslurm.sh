@@ -158,12 +158,15 @@ chmod a+x ${MYSLURM_CONF_DIR}/mywrapper.sh
 
 # Print information ==================================================
 echo "# Master: ${MYSLURM_MASTER}"
-mpiexec -n ${MYSLURM_NSLAVES} --hosts=${MYSLURM_SLAVES} hostname | sed -e "s/^/# SLAVE: /"
-
-env | grep "MYSLURM" | sed -e "s/^/# /"
+# This also checks that the external srun command is working fine...
+# Information will be printed again latter to check affinity from
+# inside the mywrapper If wrapper affinity is not set properly, then
+# slurmd initialization gets a wrong taskset at initialization time
+# and uses that bad for the processes it executes.
+srun -n $((MYSLURM_NSLAVES + 1)) -c $((NSOCS * NCPS)) hostname | sed -e "s/^/# Node: /"
 
 # Start the servers and clients ======================================
-mpiexec -n $((MYSLURM_NSLAVES + 1)) --hosts=${NODELIST// /,} ${MYSLURM_CONF_DIR}/mywrapper.sh &
+srun -n $((MYSLURM_NSLAVES + 1)) -c $((NSOCS * NCPS)) ${MYSLURM_CONF_DIR}/mywrapper.sh &
 
 # Exports ============================================================
 # Exports environment at the end to avoid modifying the environment
@@ -182,8 +185,8 @@ echo "# MYMPICH_ROOT=${MYMPICH_ROOT}"
 for mod in *.lua; do
 	dirname=${MYSLURM_VAR_DIR}/${mod%.lua}
 	[[ -d ${dirname} ]] || mkdir ${dirname}
-	[[ -f ${dirname}/personal.lua ]] || cp ${mod} ${dirname}/personal.lua
-	echo "Creating ${dirname}/personal.lua"
+	cat ${mod} > ${dirname}/personal.lua
+	echo "# Creating ${dirname}/personal.lua"
 done
 
 [[ "${MODULEPATH}" =~ "${MYSLURM_VAR_DIR}" ]] ||
