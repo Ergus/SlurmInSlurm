@@ -17,7 +17,7 @@ MUNGE_STATEDIR=/tmp/munge
 
 # You may change this one to yours
 MYSLURM_ROOT=${HOME}/install_mn/slurm
-MYSLURM_USER=bsc28860
+MYSLURM_USER=${USER}
 MYSLURM_DBD_PORT=7101
 
 # MPICH

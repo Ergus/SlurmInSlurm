@@ -60,7 +60,9 @@ specify the munge location to slurm at configure time.
 ```shell
 MYSLURM_ROOT=${HOME}/install_DIR/slurm
 
-./configure --prefix=${MYSLURM_ROOT} --sysconfdir=${MYSLURM_ROOT}/slurm-confdir --with-munge=${MUNGE_ROOT}
+./configure --prefix=${MYSLURM_ROOT} \
+	    --sysconfdir=${MYSLURM_ROOT}/slurm-confdir \
+	    --with-munge=${MUNGE_ROOT}
 ```
 
 ### MPI
@@ -92,8 +94,8 @@ MPICH_ROOT=${HOME}/install_DIR/mpich
 export LIBRARY_PATH=${MYSLURM_ROOT}/lib:${LIBRARY_PATH}
 
 ./configure --prefix=${MPICH_ROOT} --with-libfabric=embedded \
-	        --with-hwloc=embedded  --with-datatype-engine=dataloop \
-			--enable-ch4-netmod-inline --without-ch4-shmods
+	    --with-hwloc=embedded  --with-datatype-engine=dataloop \
+	    --enable-ch4-netmod-inline --without-ch4-shmods
 ```
 
 Usage
