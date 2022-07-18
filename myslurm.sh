@@ -91,6 +91,13 @@ mysql -u ${MYSLURM_USER} --port=${MARIADB_PORT} --protocol=SOCKET \
 
 # Generate files =====================================================
 
+# Generate the munge key if not set.
+if ! [ -f ${MUNGE_ROOT}/etc/munge/munge.key ]; then
+	echo "# Generating munge key: ${MUNGE_ROOT}/etc/munge/munge.key"
+	dd if=/dev/random bs=1 count=1024 > ${MUNGE_ROOT}/etc/munge/munge.key
+	chmod 0400 ${MUNGE_ROOT}/etc/munge/munge.key
+fi
+
 # Create MYSLURM_CONF_FILE
 NODENAMES=$(scontrol show hostlistsorted ${MYSLURM_SLAVES})
 
@@ -100,6 +107,7 @@ NCPS=$(grep -c "physical id[[:space:]]\+: 0" /proc/cpuinfo) # cores per socket
 MEMORY=$(grep MemTotal /proc/meminfo | cut -d' ' -f8)       # memory in KB
 REALMEM=$(((MEMORY / 1024 / 1024) * 1024))
 
+echo "# Generating slurm config: ${MYSLURM_CONF_DIR}/slurm.conf"
 sed -e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
 	-e "s|@MYSLURM_CONF_DIR@|${MYSLURM_CONF_DIR}|g" \
 	-e "s|@MYSLURM_MASTER@|${MYSLURM_MASTER}|g" \
@@ -112,6 +120,7 @@ sed -e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
 	-e "s|@NCPS@|${NCPS}|g" \
 	slurm.conf.base > ${MYSLURM_CONF_DIR}/slurm.conf
 
+echo "# Generating topology: ${MYSLURM_CONF_DIR}/topology.conf"
 { # Topology for marenostrum4
 	declare -A myarray=()
 	for node in ${REMOTE_LIST[@]}; do
@@ -128,9 +137,9 @@ sed -e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
 	done
 	switches=${!myarray[*]}
 	echo "SwitchName=troncal Switches=$(scontrol show hostlistsorted ${switches// /,})"
-
 } > ${MYSLURM_CONF_DIR}/topology.conf
 
+echo "# Generating slurmdbd config: ${MYSLURM_CONF_DIR}/slurmdbd.conf"
 sed -e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
 	-e "s|@MYSLURM_MASTER@|${MYSLURM_MASTER}|g" \
 	-e "s|@MYSLURM_USER@|${MYSLURM_USER}|g" \
@@ -141,6 +150,7 @@ sed -e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
 chmod 600 ${MYSLURM_CONF_DIR}/slurmdbd.conf
 
 # Wrapper
+echo "# Generating wrapper: ${MYSLURM_CONF_DIR}/mywrapper.sh"
 sed -e "s|@MUNGE_STATEDIR@|${MUNGE_STATEDIR}|g" \
 	-e "s|@MUNGE_ROOT@|${MUNGE_ROOT}|g" \
 	-e "s|@MYSLURM_MASTER@|${MYSLURM_MASTER}|g" \
@@ -156,6 +166,7 @@ sed -e "s|@MUNGE_STATEDIR@|${MUNGE_STATEDIR}|g" \
 chmod a+x ${MYSLURM_CONF_DIR}/mywrapper.sh
 
 # Create the load script to use in other shells.
+echo "# Generating loader: /tmp/myslurm_load.sh"
 sed -e "s|@MYSLURM_ROOT@|${MYSLURM_ROOT}|g" \
 	-e "s|@MYSLURM_CONF_DIR@|${MYSLURM_CONF_DIR}|g" \
 	-e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
@@ -191,7 +202,7 @@ echo "# MYMPICH_ROOT=${MYMPICH_ROOT}"
 source /tmp/myslurm_load.sh
 
 echo "# Create account"
-sacctmgr -i create user name=${MYSLURM_USER=bsc28860} DefaultAccount=root AdminLevel=Admin
+sacctmgr -i create user name=${MYSLURM_USER} DefaultAccount=root AdminLevel=Admin
 
 echo "# Test that internal srun works:"
 srun -n ${MYSLURM_NSLAVES} -c $((NSOCS * NCPS)) hostname | sed -e "s/^/# Node: /"
