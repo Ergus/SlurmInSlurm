@@ -9,16 +9,22 @@ if [[ $0 == ${BASH_SOURCE[0]} ]]; then
 fi
 
 # Hardcoded info ==============================================
-MARIADB_ROOT=${HOME}/install_mn/mariadb
-MARIADB_PORT=7100
-
-MUNGE_ROOT=${HOME}/install_mn/munge
-MUNGE_STATEDIR=/tmp/munge
-
 # You may change this one to yours
 MYSLURM_ROOT=${HOME}/install_mn/slurm
 MYSLURM_USER=${USER}
 MYSLURM_DBD_PORT=7101
+
+MYSLURM_TMP=/tmp/${USER}
+
+MARIADB_ROOT=${HOME}/install_mn/mariadb
+MARIADB_PORT=7100
+MYSQL_UNIX_PORT=${MYSLURM_TMP}/mysql.sock
+
+rm -rf ${MYSLURM_TMP}
+mkdir ${MYSLURM_TMP}
+
+MUNGE_ROOT=${HOME}/install_mn/munge
+MUNGE_STATEDIR=${MYSLURM_TMP}/munge
 
 # MPICH
 MYMPICH_ROOT=${HOME}/install_mn/mpich_myslurm
@@ -166,7 +172,7 @@ sed -e "s|@MUNGE_STATEDIR@|${MUNGE_STATEDIR}|g" \
 chmod a+x ${MYSLURM_CONF_DIR}/mywrapper.sh
 
 # Create the load script to use in other shells.
-echo "# Generating loader: /tmp/myslurm_load.sh"
+echo "# Generating loader: ${MYSLURM_TMP}/myslurm_load.sh"
 sed -e "s|@MYSLURM_ROOT@|${MYSLURM_ROOT}|g" \
 	-e "s|@MYSLURM_CONF_DIR@|${MYSLURM_CONF_DIR}|g" \
 	-e "s|@MYSLURM_VAR_DIR@|${MYSLURM_VAR_DIR}|g" \
@@ -174,11 +180,11 @@ sed -e "s|@MYSLURM_ROOT@|${MYSLURM_ROOT}|g" \
 	-e "s|@MYSLURM_MASTER@|${MYSLURM_MASTER}|g" \
 	-e "s|@MYSLURM_SLAVES@|${MYSLURM_SLAVES}|g" \
 	-e "s|@MYMPICH_ROOT@|${MYMPICH_ROOT}|g" \
-	myslurm_load.sh.base > /tmp/myslurm_load.sh
+	myslurm_load.sh.base > ${MYSLURM_TMP}/myslurm_load.sh
 
 # Remove mpich variables if not available
 [[ -z ${MYMPICH_ROOT} ]] && \
-	sed -i '/^# MPICH/,/^# EOF/{//!d;};' /tmp/mympich_load.sh
+	sed -i '/^# MPICH/,/^# EOF/{//!d;};' ${MYSLURM_TMP}/mympich_load.sh
 
 # Print information ==================================================
 echo "# Master: ${MYSLURM_MASTER}"
@@ -199,7 +205,7 @@ env | grep "MYSLURM" | sed -e "s/^/# /"
 echo "# MYMPICH_ROOT=${MYMPICH_ROOT}"
 
 # load the environment here. We need it to call sacctmgr.
-source /tmp/myslurm_load.sh
+source ${MYSLURM_TMP}/myslurm_load.sh
 
 echo "# Create account"
 sacctmgr -i create user name=${MYSLURM_USER} DefaultAccount=root AdminLevel=Admin

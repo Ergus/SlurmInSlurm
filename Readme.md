@@ -31,7 +31,7 @@ special requirements; we need to take into account:
 
 ```shell
 MUNGE_ROOT=${HOME}/install_DIR/munge
-MUNGE_STATEDIR=/tmp/munge
+MUNGE_STATEDIR=/tmp/${USER}/munge
 
 ./configure --prefix=${MUNGE_ROOT} --localstatedir=${MUNGE_STATEDIR}
 ```
@@ -46,8 +46,8 @@ path.
 
 ### Slurm
 
-After munge install Slurm. The order is important because we need to
-specify the munge location to slurm at configure time.
+After munge and MariaDB install Slurm. The order is important because
+we need to specify the munge location to slurm at configure time.
 
 1. You don't need to use the same slurm library than the one in your
    system; we actually recommend to use a different version. Ex: Some
@@ -56,6 +56,11 @@ specify the munge location to slurm at configure time.
 
 2. We set the config directory in a custom location because we need to
    overwrite and regenerate them every time.
+
+3. Check that the MariaDB **lib** directory is in the LD_LIBRARY_PATH
+   because slurm will attempt to link with it. If it is not then the
+   mysql plugin won't be be compiled silently and slurmdbd will fail
+   to start latter.
 
 ```shell
 MYSLURM_ROOT=${HOME}/install_DIR/slurm
@@ -121,7 +126,7 @@ output of this step)
    another shell you just need to do:
 ```shell
 ssh MASTERNODE
-source /tmp/myslurm_load.sh
+source /tmp/${USER}/myslurm_load.sh
 ```
 
 After this you are in the nested session and you can *sbatch*, *srun*,

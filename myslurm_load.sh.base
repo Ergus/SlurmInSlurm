@@ -11,7 +11,7 @@ fi
 # clear previous slurm environment
 while IFS='=' read -r -d '' n v; do
 	if [[ $n == SLURM* ]]; then
-		echo "unset $n=$v"
+		echo "# unset $n=$v"
 		unset $n
 	fi
 done < <(env -0)
