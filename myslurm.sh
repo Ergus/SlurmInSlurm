@@ -16,12 +16,12 @@ MYSLURM_DBD_PORT=7101
 
 MYSLURM_TMP=/tmp/${USER}
 
+rm -rf ${MYSLURM_TMP}
+mkdir ${MYSLURM_TMP}
+
 MARIADB_ROOT=${HOME}/install_mn/mariadb
 MARIADB_PORT=7100
 MYSQL_UNIX_PORT=${MYSLURM_TMP}/mysql.sock
-
-rm -rf ${MYSLURM_TMP}
-mkdir ${MYSLURM_TMP}
 
 MUNGE_ROOT=${HOME}/install_mn/munge
 MUNGE_STATEDIR=${MYSLURM_TMP}/munge
