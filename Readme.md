@@ -24,7 +24,7 @@ special requirements; we need to take into account:
 
 3. Munge state needs to be local in every node, but the installation
    and executable may be shared. So we set the state in the
-   `/tmp/munge` directory because `/tmp` is not shared; (it is a
+   `/tmp/${USER}/munge` directory because `/tmp` is not shared; (it is a
    *tmpfs* local to every node).
 
 4. For munge we define the variables:
@@ -43,6 +43,11 @@ required. In case your system already has a database, then you may
 modify the script database variables to not start it but use the
 existing one. We assume here you have a mysql installation in your
 path.
+
+- We recommend the version: mariadb-10.6.8-linux-systemd-x86_64
+
+- Out script will use a socket inside **/tmp/${USER}** you can check
+  its creation in case of error and attempt to connect to it.
 
 ### Slurm
 
@@ -118,9 +123,9 @@ source myslurm.sh
 This will start the server and sets the current environment to use the
 new nested slurm only.
 
-This step also creates a script: */tmp/myslurm_load.sh* in the */tmp*
-directory of the master node. (You know the master node reading the
-output of this step)
+This step also creates a script: **/tmp/${USER}/myslurm_load.sh** in
+the **/tmp** directory of the master node. (You know the master node
+reading the output of this step)
 
 2. If the server is already running but you want to access it from
    another shell you just need to do:
